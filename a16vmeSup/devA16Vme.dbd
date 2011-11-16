@@ -1,0 +1,10 @@
+device(ai,VME_IO,devAiA16Vme,"Generic A16 VME")
+device(ao,VME_IO,devAoA16Vme,"Generic A16 VME")
+device(bi,VME_IO,devBiA16Vme,"Generic A16 VME")
+device(bo,VME_IO,devBoA16Vme,"Generic A16 VME")
+device(mbbi,VME_IO,devMbbiA16Vme,"Generic A16 VME")
+device(mbbo,VME_IO,devMbboA16Vme,"Generic A16 VME")
+device(longin,VME_IO,devLiA16Vme,"Generic A16 VME")
+device(longout,VME_IO,devLoA16Vme,"Generic A16 VME")
+
+registrar(drvA16VmeRegistrar)
