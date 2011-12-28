@@ -1,0 +1,16 @@
+#==============================================================
+#
+#  Name: RELEASE_NOTES
+#
+#  Rem: This files describes release notes for
+#       the Generic A16 VME (a16Vme) support 
+#
+#  Rev:  dd-mmm-yyyy, Reviewer's Name    (USERNAME)
+#--------------------------------------------------------------
+#  Mod:
+#         27-Dec-2011, A. Alarcon         (ALARCON):
+#           release a16vme-R1-0-0
+#==============================================================
+#
+a16vme-R1-0-0:
+  First tagged release for HXRSS LCLS support
