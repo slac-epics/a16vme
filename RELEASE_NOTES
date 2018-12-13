@@ -12,5 +12,8 @@
 #           release a16vme-R1-0-0
 #==============================================================
 #
+R1.1.0:        Dec/12/2018 - Marcio Donadio
+               - Migrated to EPICS 3.15 and Git Workflow
+
 a16vme-R1-0-0:
   First tagged release for HXRSS LCLS support
