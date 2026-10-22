@@ -133,29 +133,29 @@
 #include	<iocsh.h>
 
 
-static long init_ai(struct aiRecord *pai);
+static long init_ai(struct dbCommon *pai);
 static long read_ai(struct aiRecord *pai);
-static long init_ao(struct aoRecord *pao);
+static long init_ao(struct dbCommon *pao);
 static long write_ao(struct aoRecord *pao);
-static long init_bi(struct biRecord *pbi);
+static long init_bi(struct dbCommon *pbi);
 static long read_bi(struct biRecord *pbi);
-static long init_bo(struct boRecord *pbo);
+static long init_bo(struct dbCommon *pbo);
 static long write_bo(struct boRecord *pbo);
-static long init_li(struct longinRecord *pli);
+static long init_li(struct dbCommon *pli);
 static long read_li(struct longinRecord *pli);
-static long init_lo(struct longoutRecord *plo);
+static long init_lo(struct dbCommon *plo);
 static long write_lo(struct longoutRecord *plo);
-static long init_mbbi(struct mbbiRecord *pmbbi);
+static long init_mbbi(struct dbCommon *pmbbi);
 static long read_mbbi(struct mbbiRecord *pmbbi);
-static long init_mbbo(struct mbboRecord *pmbbo);
+static long init_mbbo(struct dbCommon *pmbbo);
 static long write_mbbo(struct mbboRecord *pmbbo);
 static long checkCard(short card);
 static long write_card(short card, epicsUInt16 reg, epicsUInt32 mask, epicsUInt32 value); 
 static long read_card(short card, epicsUInt16 reg, epicsUInt32 mask, epicsUInt32 *value);
-static long get_bi_int_info(int cmd, struct biRecord *pbi, IOSCANPVT *ppvt);
+static long get_bi_int_info(int cmd, struct dbCommon *pbi, IOSCANPVT *ppvt);
 static void devA16_isr(void *arg);
 static void devA16RebootFunc(void *arg);
-static long devA16VmeReport();
+static long devA16VmeReport(int after);
 
 int  devA16VmeDebug = 0; 
 
@@ -194,26 +194,153 @@ typedef struct a16VmeDpvt { /* unique for each record */
   epicsUInt32  mask;  /* mask to use ...  */
 }a16VmeDpvt;
 
-/* Define the dset for A16VME */
-typedef struct {
-	long		number;
-	DEVSUPFUN	report;		/* used by dbior */
-	DEVSUPFUN	init;	
-	DEVSUPFUN	init_record;	/* called 1 time for each record */
-	DEVSUPFUN	get_ioint_info;	
-	DEVSUPFUN	read_write;
-        DEVSUPFUN       special_linconv;
-} A16VME_DSET;
+#ifndef HAS_aidset
+typedef struct aidset {
+  dset common;
+  long (*read_record)(struct aiRecord*);
+  long (*special_linconv)(struct aiRecord*, int);
+} aidset;
+#endif
 
-A16VME_DSET devAiA16Vme =   {6, NULL, NULL, init_ai, NULL, read_ai,  NULL};
-A16VME_DSET devAoA16Vme =   {6, NULL, NULL, init_ao, NULL, write_ao, NULL};
-A16VME_DSET devBiA16Vme =   {5, devA16VmeReport,NULL,init_bi, get_bi_int_info, 
-                             read_bi,  NULL};
-A16VME_DSET devBoA16Vme =   {5, NULL, NULL, init_bo, NULL, write_bo, NULL};
-A16VME_DSET devLiA16Vme =   {5, NULL, NULL, init_li, NULL, read_li,  NULL};
-A16VME_DSET devLoA16Vme =   {5, NULL, NULL, init_lo, NULL, write_lo, NULL};
-A16VME_DSET devMbbiA16Vme = {5, NULL, NULL, init_mbbi, NULL, read_mbbi,  NULL};
-A16VME_DSET devMbboA16Vme = {5, NULL, NULL, init_mbbo, NULL, write_mbbo, NULL};
+#ifndef HAS_aodset
+typedef struct aodset {
+  dset common;
+  long (*write_record)(struct aoRecord*);
+  long (*special_linconv)(struct aoRecord*, int);
+} aodset;
+#endif
+
+#ifndef HAS_bidset
+typedef struct bidset {
+  dset common;
+  long (*read_record)(struct biRecord*);
+} bidset;
+#endif
+
+#ifndef HAS_bodset
+typedef struct bodset {
+  dset common;
+  long (*write_record)(struct boRecord*);
+} bodset;
+#endif
+
+#ifndef HAS_longindset
+typedef struct longindset {
+  dset common;
+  long (*read_record)(struct longinRecord*);
+} longindset;
+#endif
+
+#ifndef HAS_longoutdset
+typedef struct longoutdset {
+  dset common;
+  long (*write_record)(struct longoutRecord*);
+} longoutdset;
+#endif
+
+#ifndef HAS_mbbidset
+typedef struct mbbidset {
+  dset common;
+  long (*read_record)(struct mbbiRecord*);
+} mbbidset;
+#endif
+
+#ifndef HAS_mbbodset
+typedef struct mbbodset {
+  dset common;
+  long (*write_record)(struct mbboRecord*);
+} mbbodset;
+#endif
+
+aidset devAiA16Vme = {
+  .common = {
+    .number = 6,
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_ai,
+    .get_ioint_info = NULL,
+  },
+  .read_ai = read_ai,
+  .special_linconv = NULL,
+};
+
+aodset devAoA16Vme = {
+  .common = {
+    .number = 6,
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_ao,
+    .get_ioint_info = NULL,
+   },
+   .write_ao = write_ao,
+   .special_linconv = NULL,
+};
+
+bidset devBiA16Vme = {
+  .common = {
+    .number = 5,
+    .report = devA16VmeReport,
+    .init = NULL,
+    .init_record = init_bi,
+    .get_ioint_info = get_bi_int_info,
+  },
+  .read_bi = read_bi,
+};
+
+bodset devBoA16Vme = {
+  .common = {
+    .number = 5,
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_bo,
+    .get_ioint_info = NULL,
+  },
+  .write_bo = write_bo,
+};
+
+longindset devLiA16Vme = {
+  .common = {
+    .number = 5,
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_li,
+    .get_ioint_info = NULL,
+  },
+  .read_longin = read_li,
+};
+
+longoutdset devLoA16Vme = {
+  .common = {
+    .number = 5,
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_lo,
+    .get_ioint_info = NULL,
+  },
+  .write_longout = write_lo,
+};
+
+mbbidset devMbbiA16Vme = {
+  .common = {
+    .number = 5, 
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_mbbi,
+    .get_ioint_info = NULL,
+  },
+  .read_mbbi = read_mbbi
+};
+
+mbbodset devMbboA16Vme = {
+  .common = {
+    .number = 5,
+    .report = NULL,
+    .init = NULL,
+    .init_record = init_mbbo,
+    .get_ioint_info = NULL,
+  },
+  .write_mbbo = write_mbbo
+};
 
 epicsExportAddress(dset, devAiA16Vme);
 epicsExportAddress(dset, devAoA16Vme);
@@ -226,11 +353,13 @@ epicsExportAddress(dset, devMbboA16Vme);
 
 /**************************************************************************
  **************************************************************************/
-static long devA16VmeReport()
+static long devA16VmeReport(int after)
 {
 int             i;
 int		cardNum = 0;
 epicsUInt32     regData;
+  if (after)
+    return 0;
 
   for(cardNum=0; cardNum < num_cards; cardNum++) {
     if(cards[cardNum].base != NULL) {
@@ -322,9 +451,9 @@ int devA16VmeConfig(int card, epicsUInt32 a16base, int nregs, int iVector, int i
  * BI record interrupt routine
  *
  **************************************************************************/
-static long get_bi_int_info(int cmd, struct biRecord *pbi, IOSCANPVT *ppvt)
+static long get_bi_int_info(int cmd, struct dbCommon *prec, IOSCANPVT *ppvt)
 {
-
+   biRecord* pbi = (biRecord*)prec;
    struct vmeio           *pvmeio = (struct vmeio *)(&pbi->inp.value);
 
    if(cards[pvmeio->card].ioscanpvt != NULL) {
@@ -374,12 +503,13 @@ static void devA16RebootFunc(void *arg)
  * BO Initialization (Called one time for each BO MSLT card record)
  *
  **************************************************************************/
-static long init_bo(struct boRecord *pbo)
+static long init_bo(struct dbCommon *prec)
 {
     long                status = 0;
     int                 card, args, bit;
     epicsUInt32 	rawVal;
     a16VmeDpvt         *pPvt;
+    boRecord           *pbo = (boRecord*)prec;
 
     /* bo.out must be an VME_IO */
     switch (pbo->out.type) {
@@ -446,12 +576,13 @@ static long init_bo(struct boRecord *pbo)
  * BI Initialization (Called one time for each BI record)
  *
  **************************************************************************/
-static long init_bi(struct biRecord *pbi)
+static long init_bi(struct dbCommon *prec)
 {
     long                status = 0;
     int                 card, args, bit;
     epicsUInt32         rawVal;
     a16VmeDpvt         *pPvt;
+    biRecord           *pbi = (biRecord*)prec;
    
 
     /* bi.inp must be an VME_IO */
@@ -518,12 +649,13 @@ static long init_bi(struct biRecord *pbi)
  * MBBO Initialization (Called one time for each MBBO record)
  *
  **************************************************************************/
-static long init_mbbo(struct mbboRecord *pmbbo)
+static long init_mbbo(struct dbCommon *prec)
 {
     long                status = 0;
     int                 card, args, bit;
     epicsUInt32         rawVal;
     a16VmeDpvt         *pPvt;
+    mbboRecord         *pmbbo = (mbboRecord*)prec;
 
     /* mbbo.out must be an VME_IO */
     switch (pmbbo->out.type) {
@@ -593,12 +725,13 @@ static long init_mbbo(struct mbboRecord *pmbbo)
  * MBBI Initialization (Called one time for each MBBO record)
  *
  **************************************************************************/
-static long init_mbbi(struct mbbiRecord *pmbbi)
+static long init_mbbi(struct dbCommon *prec)
 {
     long                status = 0;
     int                 card, args, bit;
     epicsUInt32         rawVal;
     a16VmeDpvt         *pPvt;
+    mbbiRecord         *pmbbi = (mbbiRecord*)prec;
 
     /* mbbi.inp must be an VME_IO */
     switch (pmbbi->inp.type) {
@@ -668,11 +801,12 @@ static long init_mbbi(struct mbbiRecord *pmbbi)
  * AI Initialization (Called one time for each AI record)
  *
  **************************************************************************/
-static long init_ai(struct aiRecord *pai)
+static long init_ai(struct dbCommon *prec)
 {
     long                status = 0;
     int                 card, args, bit, numBits;
     a16VmeDpvt         *pPvt;
+    aiRecord           *pai = (aiRecord*)prec;
 
     /* ai.inp must be an VME_IO */
     switch (pai->inp.type) {
@@ -734,12 +868,13 @@ static long init_ai(struct aiRecord *pai)
  * AO Initialization (Called one time for each AO record)
  *
  **************************************************************************/
-static long init_ao(struct aoRecord *pao)
+static long init_ao(struct dbCommon *prec)
 {
     long                status = 0;
     epicsUInt32         rawVal;
     int                 card, args, bit, numBits;
     a16VmeDpvt         *pPvt;
+    aoRecord           *pao = (aoRecord*)prec;
 
     /* ao.out must be an VME_IO */
     switch (pao->out.type) {
@@ -806,11 +941,12 @@ static long init_ao(struct aoRecord *pao)
  * LI Initialization (Called one time for each LI record)
  *
  **************************************************************************/
-static long init_li(struct longinRecord *pli)
+static long init_li(struct dbCommon *prec)
 {
     long                status = 0;
     int                 card, args, bit, numBits;
     a16VmeDpvt         *pPvt;
+    longinRecord       *pli = (longinRecord*)prec;
 
     /* li.inp must be an VME_IO */
     switch (pli->inp.type) {
@@ -871,12 +1007,13 @@ static long init_li(struct longinRecord *pli)
  * Long Out Initialization (Called one time for each LO record)
  *
  **************************************************************************/
-static long init_lo(struct longoutRecord *plo)
+static long init_lo(struct dbCommon *prec)
 {
     long                status = 0;
     epicsUInt32         rawVal;
     int                 card, args, bit, numBits;
     a16VmeDpvt         *pPvt;
+    longoutRecord      *plo = (longoutRecord*)prec;
 
     /* lo.out must be an VME_IO */
     switch (plo->out.type) {
